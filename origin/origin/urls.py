@@ -17,8 +17,11 @@ from django.contrib import admin
 from django.urls import path
 
 from bonds.views import HelloWorld
+from rest_framework.authtoken.views import obtain_auth_token
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('auth_token/', obtain_auth_token),
     path('', HelloWorld.as_view())
 ]
