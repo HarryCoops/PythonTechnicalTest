@@ -16,12 +16,12 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
-from bonds.views import HelloWorld
+from bonds.views import Bonds
 from rest_framework.authtoken.views import obtain_auth_token
 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('auth_token/', obtain_auth_token),
-    path('', HelloWorld.as_view())
+    path('bonds/', Bonds.as_view(), name="bonds")
 ]
