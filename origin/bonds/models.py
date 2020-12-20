@@ -51,4 +51,6 @@ class Bond(models.Model):
         indexes = [
             models.Index(fields=["user", "isin"])
         ]
+    def __str__(self):
+        return f"isin: {self.isin}, user: {self.user.id}"
     
