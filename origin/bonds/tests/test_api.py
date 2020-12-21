@@ -1,10 +1,10 @@
 import json
 from unittest import mock
 
-from django.urls import reverse
 from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
+from rest_framework.reverse import reverse
 from django.contrib.auth.models import User
 
 from bonds import models
@@ -21,10 +21,10 @@ class MockResponse:
 class CreateBondTestCase(TestCase):
 
     def setUp(self):
-        user = User(username="test", password="Test_123!")
-        user.save()
+        self.user = User(username="test", password="Test_123!")
+        self.user.save()
         self.client = APIClient()
-        self.client.force_authenticate(user)
+        self.client.force_authenticate(self.user)
 
     @mock.patch("requests.get")
     def test_create_bond__valid(self, gleif_get):
@@ -40,10 +40,10 @@ class CreateBondTestCase(TestCase):
             "maturity": "2020-12-25"
         }
         response = self.client.post(
-            reverse("bonds"), json.dumps(payload), content_type="application/json"
+            reverse("bonds-list"), json.dumps(payload), content_type="application/json"
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(len(models.Bond.objects.filter(isin=payload["isin"])) > 0)
+        self.assertTrue(len(models.Bond.objects.filter(user=self.user, isin=payload["isin"])) > 0)
 
     @mock.patch("requests.get")
     def test_create_bond__invalid_lei_api_gives_400(self, gleif_get):
@@ -59,10 +59,10 @@ class CreateBondTestCase(TestCase):
             "maturity": "2020-12-25"
         }
         response = self.client.post(
-            reverse("bonds"), json.dumps(payload), content_type="application/json"
+            reverse("bonds-list"), json.dumps(payload), content_type="application/json"
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(len(models.Bond.objects.filter(isin=payload["isin"])), 0)
+        self.assertEqual(len(models.Bond.objects.filter(user=self.user, isin=payload["isin"])), 0)
 
     @mock.patch("requests.get")
     def test_create_bond__invalid_lei_api_gives_500(self, gleif_get):
@@ -81,10 +81,10 @@ class CreateBondTestCase(TestCase):
             "maturity": "2020-12-25"
         }
         response = self.client.post(
-            reverse("bonds"), json.dumps(payload), content_type="application/json"
+            reverse("bonds-list"), json.dumps(payload), content_type="application/json"
         )
         self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
-        self.assertEqual(len(models.Bond.objects.filter(isin=payload["isin"])), 0)
+        self.assertEqual(len(models.Bond.objects.filter(user=self.user, isin=payload["isin"])), 0)
 
     @mock.patch("requests.get")
     def test_create_bond__invalid_lei_missing_field(self, gleif_get):
@@ -99,10 +99,10 @@ class CreateBondTestCase(TestCase):
             "maturity": "2020-12-25"
         }
         response = self.client.post(
-            reverse("bonds"), json.dumps(payload), content_type="application/json"
+            reverse("bonds-list"), json.dumps(payload), content_type="application/json"
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(len(models.Bond.objects.filter(isin=payload["isin"])), 0)
+        self.assertEqual(len(models.Bond.objects.filter(user=self.user, isin=payload["isin"])), 0)
 
     @mock.patch("requests.get")
     def test_create_bond__invalid_lei_invalid_isin(self, gleif_get):
@@ -118,10 +118,10 @@ class CreateBondTestCase(TestCase):
             "maturity": "2020-12-25"
         }
         response = self.client.post(
-            reverse("bonds"), json.dumps(payload), content_type="application/json"
+            reverse("bonds-list"), json.dumps(payload), content_type="application/json"
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(len(models.Bond.objects.filter(isin=payload["isin"])), 0)
+        self.assertEqual(len(models.Bond.objects.filter(user=self.user, isin=payload["isin"])), 0)
     
     @mock.patch("requests.get")
     def test_create_bond__invalid_lei_duplicate_isin(self, gleif_get):
@@ -137,23 +137,23 @@ class CreateBondTestCase(TestCase):
             "maturity": "2020-12-25"
         }
         self.client.post(
-            reverse("bonds"), json.dumps(payload), content_type="application/json"
+            reverse("bonds-list"), json.dumps(payload), content_type="application/json"
         )
         response = self.client.post(
-            reverse("bonds"), json.dumps(payload), content_type="application/json"
+            reverse("bonds-list"), json.dumps(payload), content_type="application/json"
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(len(models.Bond.objects.filter(isin=payload["isin"])), 1)
+        self.assertEqual(len(models.Bond.objects.filter(user=self.user, isin=payload["isin"])), 1)
 
 
 class ListBondsTestCase(TestCase):
 
     @mock.patch("requests.get")
     def setUp(self, gleif_get):
-        user = User(username="test", password="Test_123!")
-        user.save()
+        self.user = User(username="test", password="Test_123!")
+        self.user.save()
         self.client = APIClient()
-        self.client.force_authenticate(user)
+        self.client.force_authenticate(self.user)
         gleif_get.return_value = MockResponse(
             status.HTTP_200_OK, 
             [{"Entity":{"LegalName":{"$":"Test"}}}]
@@ -166,7 +166,7 @@ class ListBondsTestCase(TestCase):
             "maturity": "2020-12-25"
         }
         self.client.post(
-            reverse("bonds"), json.dumps(payload), content_type="application/json"
+            reverse("bonds-list"), json.dumps(payload), content_type="application/json"
         )
         payload = {
             "isin": "123451232514",
@@ -176,7 +176,7 @@ class ListBondsTestCase(TestCase):
             "maturity": "2020-12-25"
         }
         self.client.post(
-            reverse("bonds"), json.dumps(payload), content_type="application/json"
+            reverse("bonds-list"), json.dumps(payload), content_type="application/json"
         )
         payload = {
             "isin": "123451232515",
@@ -186,7 +186,7 @@ class ListBondsTestCase(TestCase):
             "maturity": "2021-12-25"
         }
         self.client.post(
-            reverse("bonds"), json.dumps(payload), content_type="application/json"
+            reverse("bonds-list"), json.dumps(payload), content_type="application/json"
         )
         payload = {
             "isin": "123451232516",
@@ -196,65 +196,156 @@ class ListBondsTestCase(TestCase):
             "maturity": "2022-12-25"
         }
         self.client.post(
-            reverse("bonds"), json.dumps(payload), content_type="application/json"
+            reverse("bonds-list"), json.dumps(payload), content_type="application/json"
         )
 
-    def test_list_all(self):
+    def test_list__all(self):
         response = self.client.get(
-            reverse("bonds")
+            reverse("bonds-list")
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         response_json = response.json()
         self.assertEqual(len(response_json), 4)
 
-    def test_list_filter_by_size(self):
+    def test_list__filter_by_size(self):
         response = self.client.get(
-            reverse("bonds"), {"size": 50}
+            reverse("bonds-list"), {"size": 50}
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         response_json = response.json()
         self.assertEqual(len(response_json), 2)
 
-    def test_list_all_by_isin(self):
+    def test_list__all_by_isin(self):
         response = self.client.get(
-            reverse("bonds"), {"isin": "123451232516"}
+            reverse("bonds-list"), {"isin": "123451232516"}
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         response_json = response.json()
         self.assertEqual(len(response_json), 1)
 
-    def test_list_all_isin_not_present(self):
+    def test_list__all_isin_not_present(self):
         response = self.client.get(
-            reverse("bonds"), {"isin": "123451232517"}
+            reverse("bonds-list"), {"isin": "123451232517"}
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         response_json = response.json()
         self.assertEqual(len(response_json), 0)
 
-    def test_list_all_different_user(self):
+    def test_list__all_different_user(self):
         new_user = User(username="test-2", password="Test_123!")
         new_user.save()
         client = APIClient()
         client.force_authenticate(new_user)
         response = client.get(
-            reverse("bonds")
+            reverse("bonds-list")
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         response_json = response.json()
         self.assertEqual(len(response_json), 0)
 
-    def test_list_all_by_currency_and_size(self):
+    def test_list__all_by_currency_and_size(self):
         response = self.client.get(
-            reverse("bonds"), {"currency": "EUR", "size": 50}
+            reverse("bonds-list"), {"currency": "EUR", "size": 50}
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         response_json = response.json()
         self.assertEqual(len(response_json), 2)
 
-    def test_list_all_by_maturity(self):
+    def test_list__all_by_maturity(self):
         response = self.client.get(
-            reverse("bonds"), {"maturity": "2021-12-25"}
+            reverse("bonds-list"), {"maturity": "2021-12-25"}
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         response_json = response.json()
         self.assertEqual(len(response_json), 1)
+
+
+class DeleteBondsTestCase(TestCase):
+
+    @mock.patch("requests.get")
+    def setUp(self, gleif_get):
+        self.user = User(username="test", password="Test_123!")
+        self.user.save()
+        self.client = APIClient()
+        self.client.force_authenticate(self.user)
+        gleif_get.return_value = MockResponse(
+            status.HTTP_200_OK, 
+            [{"Entity":{"LegalName":{"$":"Test"}}}]
+        )
+        payload = {
+            "isin": "123451232513",
+            "size": 100,
+            "currency": "EUR",
+            "lei": "R0MUWSFPU8MPRO8K5P83",
+            "maturity": "2020-12-25"
+        }
+        self.client.post(
+            reverse("bonds-list"), json.dumps(payload), content_type="application/json"
+        )
+        payload = {
+            "isin": "123451232514",
+            "size": 50,
+            "currency": "EUR",
+            "lei": "R0MUWSFPU8MPRO8K5P83",
+            "maturity": "2020-12-25"
+        }
+        self.client.post(
+            reverse("bonds-list"), json.dumps(payload), content_type="application/json"
+        )
+        payload = {
+            "isin": "123451232515",
+            "size": 100,
+            "currency": "EUR",
+            "lei": "R0MUWSFPU8MPRO8K5P84",
+            "maturity": "2021-12-25"
+        }
+        self.client.post(
+            reverse("bonds-list"), json.dumps(payload), content_type="application/json"
+        )
+        payload = {
+            "isin": "123451232516",
+            "size": 50,
+            "currency": "EUR",
+            "lei": "R0MUWSFPU8MPRO8K5P84",
+            "maturity": "2022-12-25"
+        }
+        self.client.post(
+            reverse("bonds-list"), json.dumps(payload), content_type="application/json"
+        )
+
+    def test_delete__invalid_isin(self):
+        response = self.client.delete(
+            reverse("bonds-detail", kwargs={"pk": "232131"})
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_delete__valid(self):
+        response = self.client.delete(
+            reverse("bonds-detail", kwargs={"pk": "123451232516"})
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertTrue(
+            len(models.Bond.objects.filter(user=self.user, isin="123451232516")) == 0
+        )
+
+    def test_delete__users_cannot_delete_each_others_bonds(self):
+        new_user = User(username="test-2", password="Test_123!")
+        new_user.save()
+        client = APIClient()
+        client.force_authenticate(new_user)
+        payload = {
+            "isin": "123451232511",
+            "size": 50,
+            "currency": "EUR",
+            "lei": "R0MUWSFPU8MPRO8K5P84",
+            "maturity": "2022-12-25"
+        }
+        client.post(
+            reverse("bonds-list"), json.dumps(payload), content_type="application/json"
+        )
+
+
+        response = self.client.delete(
+            reverse("bonds-detail", kwargs={"pk": "123451232511"})
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

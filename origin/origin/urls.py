@@ -16,12 +16,14 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
-from bonds.views import Bonds
+from bonds.views import BondsViewSet
+from rest_framework.routers import Route, SimpleRouter
 from rest_framework.authtoken.views import obtain_auth_token
 
+router = SimpleRouter()
+router.register(r"bonds", BondsViewSet, basename="bonds")
 
-urlpatterns = [
+urlpatterns = router.urls + [
     path('admin/', admin.site.urls),
     path('auth_token/', obtain_auth_token),
-    path('bonds/', Bonds.as_view(), name="bonds")
 ]

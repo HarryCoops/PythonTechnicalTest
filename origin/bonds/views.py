@@ -1,7 +1,10 @@
 import requests
 
 from rest_framework import status
+from rest_framework import mixins
+from rest_framework import viewsets
 import django_filters.rest_framework
+from rest_framework.views import APIView
 from rest_framework.generics import ListCreateAPIView
 from rest_framework.parsers import JSONParser
 from rest_framework.response import Response
@@ -16,7 +19,11 @@ from bonds.settings import GLEIF_LEILOOKUP_URL
 
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
-class Bonds(ListCreateAPIView):
+class BondsViewSet(mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet
+):
     serializer_class = serializers.BondSerializer
     filter_backends = [django_filters.rest_framework.DjangoFilterBackend]
     filter_fields = ["isin", "size", "lei", "legal_name", "maturity", "currency"]
@@ -25,7 +32,26 @@ class Bonds(ListCreateAPIView):
         # Only allow users to list bonds created by themself
         return models.Bond.objects.filter(user=self.request.user)
 
-    def post(self, request):
+    def destroy(self, request, pk=None):
+        isin = pk
+        if not isin:
+            return Response(
+                "ISIN must be present in request",
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        bonds = models.Bond.objects.filter(user=request.user, isin=isin)
+        if len(bonds) == 0:
+            return Response(
+                f"Bond with ISIN {isin} not found",
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        bonds[0].delete()
+        return Response(
+            status=status.HTTP_204_NO_CONTENT
+        )
+
+    def create(self, request):
         """
         Create a new bond
         """
@@ -67,4 +93,3 @@ class Bonds(ListCreateAPIView):
 
         serializer.save()
         return Response(status=status.HTTP_200_OK)
-

@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.core.validators import RegexValidator
 from django.core.exceptions import ValidationError
 
-from bonds.utils import CURRENCY_CODES
+from bonds.settings import CURRENCY_CODES
 
 def validate_positive(value):
     if value <= 0:
