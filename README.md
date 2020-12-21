@@ -1,5 +1,13 @@
 # Origin Markets Backend Test
 
+### Authentication
+
+I've chosen to use token authentication for this API. There is a test user created with username `test` and password `test123`. A token exists for this user and can be used by setting the header `Authorization: Token b1e25e45ce9390cc0e43ae5f44f9324c45d8cdf0`. To generate a token for user there is a `/auth_token/` endpoint that takes `username` and `password` as POST parameters and will return a token on successful authorization. 
+
+### Assumptions
+
+I've assumed that bonds are created and listed on a per user basis, and users cannot interact with or see other users data. I have assumed that the `ISIN` uniquely identifies a bond for a user, so that once a user creates a bond a subsequent attempt to create a bond with the same `ISIN` is rejected. If a user would need to modify a bond they must delete it first, and a method `DELETE /bonds/[ISIN]/` has been added for this.
+
 ### Spec:
 
 We would like you to implement an api to: ingest some data representing bonds, query an external api for some additional data, store the result, and make the resulting data queryable via api.
